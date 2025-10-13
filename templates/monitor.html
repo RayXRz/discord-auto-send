@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Monitor{% endblock %}
+{% block content %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+<h2>Monitor Discord Bot - Per Channel</h2>
+<p>Token: {% if token %}{{ token[:20] }}... (tersembunyi untuk keamanan){% else %}Tidak diset. Masuk ke <a href="{{ url_for('settings') }}">Settings</a> dulu.{% endif %}</p>
+
+{% if settings %}
+    <h3>Channels Aktif:</h3>
+    <table style="width: 100%; border-collapse: collapse; border: 1px solid #ddd;">
+        <thead>
+            <tr style="background: #f2f2f2;">
+                <th style="border: 1px solid #ddd; padding: 8px;">Channel ID</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Message (Preview)</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Delay (detik)</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Status</th>
+                <th style="border: 1px solid #ddd; padding: 8px;">Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for setting in settings %}
+            <tr>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ setting.channel_id }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ setting.message[:50] }}{% if setting.message|length > 50 %}...{% endif %}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">{{ setting.delay }}</td>
+                <td style="border: 1px solid #ddd; padding: 8px;">
+                    {% if setting.is_running %}
+                        <span style="color: green;">🟢 Running</span>
+                    {% else %}
+                        <span style="color: red;">🔴 Stopped</span>
+                    {% endif %}
+                </td>
+                <td style="border: 1px solid #ddd; padding: 8px;">
+                    {% if setting.is_running %}
+                        <button onclick="stopChannel({{ setting.id }})" style="background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer;">Stop</button>
+                    {% else %}
+                        <button onclick="startChannel({{ setting.id }})" style="background: #007bff; color: white; border: none; padding: 5px 10px; cursor: pointer;">Start</button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p><strong>Belum ada settings!</strong> Tambah di <a href="{{ url_for('settings') }}">Settings</a> dulu (minimal token dan 1 channel).</p>
+{% endif %}
+
+<h3>Logs (Real-time, update setiap 5 detik):</h3>
+<div id="logs">
+    {% for log in logs %}
+        <p>{{ log }}</p>
+    {% endfor %}
+</div>
+
+<script>
+    function startChannel(settingId) {
+        fetch(`/api/start_channel/${settingId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Channel started! Refresh page untuk lihat update.');
+                    location.reload();  // Reload untuk update status dan logs
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Network error: ' + err));
+    }
+
+    function stopChannel(settingId) {
+        fetch(`/api/stop_channel/${settingId}`, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Channel stopped! Refresh page untuk lihat update.');
+                    location.reload();  // Reload untuk update status dan logs
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('Network error: ' + err));
+    }
+
+    // Polling logs setiap 5 detik (tanpa reload full page)
+    setInterval(() => {
+        fetch('/api/get_logs')
+            .then(res => res.json())
+            .then(data => {
+                const logsDiv = document.getElementById('logs');
+                logsDiv.innerHTML = '';
+                data.logs.forEach(log => {
+                    const p = document.createElement('p');
+                    p.style.margin = '0';
+                    p.style.padding = '2px 0';
+                    p.textContent = log;
+                    logsDiv.appendChild(p);
+                });
+                logsDiv.scrollTop = logsDiv.scrollHeight;  // Auto-scroll ke bawah
+            })
+            .catch(err => console.error('Logs fetch error:', err));
+    }, 5000);
+</script>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block content %}
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+<h2>Settings</h2>
+
+<!-- Input Token -->
+<div class="form-group">
+    <label>Tokens:</label>
+    <input type="text" id="token-input" value="{{ token }}" placeholder="Masukkan token di sini">
+</div>
+
+<!-- Tombol Add Paket -->
+<button onclick="addSettingRow()">+</button>
+
+<!-- Daftar Settings -->
+<div id="settings-list" class="settings-list">
+    {% for setting in settings %}
+    <div class="setting-row">
+        <input type="text" value="{{ setting.channel_id }}" placeholder="Channel ID" onchange="saveSetting(this, {{ setting.id }})">
+        <textarea placeholder="Message" onchange="saveSetting(this, {{ setting.id }})">{{ setting.message }}</textarea>
+        <input type="number" value="{{ setting.delay }}" placeholder="Delay (detik)" onchange="saveSetting(this, {{ setting.id }})">
+        <button class="delete-btn" onclick="deleteSetting({{ setting.id }})">Hapus</button>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+    // Auto-save Token
+    document.getElementById('token-input').addEventListener('blur', function() {
+        autoSave('/api/save_token', { token: this.value });
+    });
+
+    // Add New Row
+    let rowCounter = 0;
+    function addSettingRow() {
+        rowCounter++;
+        const list = document.getElementById('settings-list');
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+        row.innerHTML = `
+            <input type="text" placeholder="Channel ID" id="ch-${rowCounter}" onchange="saveNewSetting()">
+            <textarea placeholder="Message" id="msg-${rowCounter}" onchange="saveNewSetting()"></textarea>
+            <input type="number" placeholder="Delay (detik)" id="del-${rowCounter}" onchange="saveNewSetting()">
+            <button class="delete-btn" onclick="this.parentElement.remove();">Hapus</button>
+        `;
+        list.appendChild(row);
+    }
+
+    // Save New Setting (untuk row baru)
+    function saveNewSetting() {
+        const ch = document.getElementById(`ch-${rowCounter}`).value;
+        const msg = document.getElementById(`msg-${rowCounter}`).value;
+        const del = document.getElementById(`del-${rowCounter}`).value;
+        if (ch && msg && del) {
+            autoSave('/api/save_setting', { channel_id: ch, message: msg, delay: del });
+            // Refresh page atau update UI setelah save (opsional: reload settings via API)
+            location.reload();  // Sederhana, reload untuk tampilkan ID baru
+        }
+    }
+
+    // Save Existing Setting
+    function saveSetting(input, id) {
+        const row = input.closest('.setting-row');
+        const channel_id = row.querySelector('input[type="text"]').value;
+        const message = row.querySelector('textarea').value;
+        const delay = row.querySelector('input[type="number"]').value;
+        autoSave('/api/save_setting', { id: id, channel_id: channel_id, message: message, delay: delay });
+    }
+
+    // Delete Setting
+    function deleteSetting(id) {
+        if (confirm('Yakin hapus?')) {
+            autoSave('/api/delete_setting', { id: id });
+            location.reload();
+        }
+    }
+</script>
+{% endblock %}

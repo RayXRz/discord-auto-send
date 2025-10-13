@@ -1,0 +1,76 @@
+body {
+    background-color: #1e1e1e;
+    color: #ddd;
+    font-family: "Segoe UI", sans-serif;
+}
+
+h2, h3 {
+    color: #f0f0f0;
+}
+
+.monitor-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #2a2a2a;
+    color: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.monitor-table th, .monitor-table td {
+    border: 1px solid #444;
+    padding: 10px;
+    text-align: center;
+}
+
+.monitor-table th {
+    background-color: #333;
+    font-weight: bold;
+}
+
+.monitor-table tr:nth-child(even) {
+    background-color: #2f2f2f;
+}
+
+.monitor-table tr:hover {
+    background-color: #3a3a3a;
+}
+
+.btn {
+    border: none;
+    padding: 6px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.btn.start {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn.stop {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status.running {
+    color: #28a745;
+}
+
+.status.stopped {
+    color: #dc3545;
+}
+
+/* log box */
+#logs {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px;
+    height: 300px;
+    overflow-y: auto;
+    font-family: monospace;
+    color: #00ff88;
+}

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+
+{% block head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <h2>selamat datang, {{ current_user.username }}!</h2>
+  <div class="dashboard-buttons">
+    <a href="{{ url_for('monitor') }}"><button>monitor</button></a>
+    <a href="{{ url_for('settings') }}"><button>settings</button></a>
+  </div>
+</div>
+{% endblock %}

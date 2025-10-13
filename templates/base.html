@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}My Website{% endblock %}</title>
+<style>
+  body {
+    font-family: 'Poppins', sans-serif;
+    background: #0e1621;
+    color: #f2f4f8;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px;
+    min-height: 100vh;
+  }
+
+  nav {
+    margin-bottom: 25px;
+  }
+
+  nav a {
+    color: #5da0ff;
+    text-decoration: none;
+    margin: 0 10px;
+    font-weight: 500;
+  }
+
+  nav a:hover {
+    color: #7cb8ff;
+  }
+
+  h2 {
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 20px;
+  }
+
+  form {
+    background: #1b2838;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 15px rgba(0, 0, 0, 0.4);
+    width: 320px;
+  }
+
+  .form-group {
+    margin-bottom: 15px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 14px;
+    color: #cfd8e3;
+  }
+
+    input[type="text"],
+    input[type="password"] {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #2c3e50;
+    border-radius: 6px;
+    outline: none;
+    font-size: 14px;
+    background: #25344a;
+    color: #fff;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    }
+
+  input:focus {
+    border-color: #5da0ff;
+    background: #2f4360;
+  }
+
+  button {
+    width: 100%;
+    padding: 10px;
+    background: #3c6fff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 15px;
+    transition: background 0.3s;
+  }
+
+  button:hover {
+    background: #2f57cc;
+  }
+
+  p {
+    text-align: center;
+    margin-top: 15px;
+    color: #cfd8e3;
+  }
+
+  p a {
+    color: #5da0ff;
+    text-decoration: none;
+  }
+
+  p a:hover {
+    text-decoration: underline;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    background: #1b2838;
+    color: #d9e1ec;
+    margin-bottom: 5px;
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  }
+</style>
+</head>
+<body>
+    <nav>
+        {% if current_user.is_authenticated %}
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> |
+            <a href="{{ url_for('settings') }}">Settings</a> |
+            <a href="{{ url_for('monitor') }}">Monitor</a> |
+            <a href="{{ url_for('logout') }}">Logout</a>
+        {% endif %}
+    </nav>
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <ul>
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+    <script>
+        // Fungsi auto-save umum
+        function autoSave(url, data) {
+            fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            }).then(response => response.json())
+              .then(result => console.log('Saved:', result))
+              .catch(error => console.error('Error:', error));
+        }
+    </script>
+</body>
+</html>
