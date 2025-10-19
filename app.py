@@ -17,7 +17,7 @@ import check_key
 # ---------- Config ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "app.db")
-ADMIN_KEY = os.environ.get("ADMIN_KEY", "ganti_dengan_secret_aman")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "09062008DhafinARz!")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'replace_this_secret_in_production'
