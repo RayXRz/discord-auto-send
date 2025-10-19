@@ -88,8 +88,18 @@ def admin_list_keys():
 @app.route("/admin/generate_keys", methods=["GET"])
 def admin_generate_keys():
     require_admin()
-    n = int(request.args.get("n", 1))  # jumlah key yang mau dibuat
-    new_keys = generate_keys.create_keys(n)
+    n = int(request.args.get("n", 1))
+    new_keys = []
+    for _ in range(n):
+        from secrets import token_urlsafe
+        k = token_urlsafe(9)
+        rk = RegisterKey(key=k, used=False)
+        try:
+            db.session.add(rk)
+            db.session.commit()
+            new_keys.append(k)
+        except Exception:
+            db.session.rollback()
     return jsonify({"generated": new_keys})
 
 # opsional: endpoint untuk download csv (terproteksi juga)
