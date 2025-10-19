@@ -1,5 +1,5 @@
 # app.py (versi dengan sistem key)
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, abort, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -112,6 +112,23 @@ def admin_download_csv():
         "Content-Type": "text/csv",
         "Content-Disposition": "attachment; filename=keys.csv"
     })
+
+@app.route("/admin/initdb", methods=["GET"])
+def initdb():
+    if 'user_id' not in session:
+        return "Unauthorized: please log in first", 403
+
+    user = User.query.get(session['user_id'])
+    if not user or not getattr(user, 'is_admin', False):
+        return "Forbidden: admin only", 403
+
+    try:
+        db.create_all()
+        return "Database created successfully by admin!"
+    except Exception as e:
+        return f"Error initializing database: {e}", 500
+
+
 
 # ---------- In-memory runtime state ----------
 # user_tasks: { user_id: { setting_id: {'thread': Thread, 'stop_event': Event, 'running': bool} } }
