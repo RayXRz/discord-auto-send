@@ -10,8 +10,6 @@ import threading
 import time
 from datetime import datetime
 import os
-import sqlite3
-import check_key
 import secrets
 
 # ---------- Config ----------
@@ -21,7 +19,7 @@ ADMIN_KEY = os.environ.get("ADMIN_KEY", "09062008DhafinARz!")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'replace_this_secret_in_production'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")  # Railway bakal set ini otomatis
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -77,11 +75,25 @@ def admin_list_keys():
     return jsonify({"count": len(data), "keys": data})
 
 
+def create_key(n=1):
+    keys = []
+    for _ in range(n):
+        while True:
+            k = secrets.token_urlsafe(9)
+            try:
+                rk = RegisterKey(key=k, used=False)
+                db.session.add(rk)
+                db.session.commit()
+                keys.append(k)
+                break
+            except Exception:
+                db.session.rollback()
+    return keys
+
 @app.route("/admin/generate_keys", methods=["GET"])
 def admin_generate_keys():
     require_admin()
     n = int(request.args.get("n", 1))
-    from generate_keys import create_key
     new_keys = create_key(n)
     return jsonify({"generated": new_keys})
 
@@ -465,4 +477,6 @@ if __name__ == '__main__':
         except Exception as e:
             print("[startup] resume error:", e)
         print("App ready. DB:", app.config['SQLALCHEMY_DATABASE_URI'])
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
