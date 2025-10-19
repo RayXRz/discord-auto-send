@@ -114,19 +114,11 @@ def admin_download_csv():
     })
 
 @app.route("/admin/initdb", methods=["GET"])
-def initdb():
-    if 'user_id' not in session:
-        return "Unauthorized: please log in first", 403
+def admin_initdb():
+    require_admin()  # biar cuma admin yang bisa akses
+    db.create_all()
+    return "Database created successfully"
 
-    user = User.query.get(session['user_id'])
-    if not user or not getattr(user, 'is_admin', False):
-        return "Forbidden: admin only", 403
-
-    try:
-        db.create_all()
-        return "Database created successfully by admin!"
-    except Exception as e:
-        return f"Error initializing database: {e}", 500
 
 
 
