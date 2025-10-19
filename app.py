@@ -85,6 +85,13 @@ def admin_list_keys():
     data = [{"key": r[0], "used": bool(r[1])} for r in rows]
     return jsonify({"count": len(data), "keys": data})
 
+@app.route("/admin/generate_keys", methods=["POST"])
+def admin_generate_keys():
+    require_admin()
+    n = int(request.args.get("n", 1))  # jumlah key yang mau dibuat
+    new_keys = generate_keys.create_keys(n)
+    return jsonify({"generated": new_keys})
+
 # opsional: endpoint untuk download csv (terproteksi juga)
 @app.route("/admin/download_keys.csv", methods=["GET"])
 def admin_download_csv():
@@ -105,34 +112,6 @@ def admin_download_csv():
         "Content-Type": "text/csv",
         "Content-Disposition": "attachment; filename=keys.csv"
     })
-
-@app.route('/generate_key', methods=['POST'])
-def generate_key():
-    try:
-        n = request.json.get('n', 1)
-    except:
-        n = 1
-    keys = generate_keys.create_keys(n)
-    return jsonify({
-        'status': 'success',
-        'generated': len(keys),
-        'keys': keys
-    })
-
-# === lihat semua key ===
-@app.route('/list_keys', methods=['GET'])
-def list_keys():
-    import sqlite3
-    conn = sqlite3.connect(check_key.DB_PATH)
-    cur = conn.cursor()
-    cur.execute("SELECT key, used FROM register_key")
-    rows = cur.fetchall()
-    conn.close()
-    data = [
-        {"key": k, "used": bool(u)}
-        for k, u in rows
-    ]
-    return jsonify(data)
 
 # ---------- In-memory runtime state ----------
 # user_tasks: { user_id: { setting_id: {'thread': Thread, 'stop_event': Event, 'running': bool} } }
