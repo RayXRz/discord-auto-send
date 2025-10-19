@@ -11,7 +11,6 @@ import time
 from datetime import datetime
 import os
 import sqlite3
-import generate_keys
 import check_key
 import secrets
 
@@ -82,19 +81,8 @@ def admin_list_keys():
 def admin_generate_keys():
     require_admin()
     n = int(request.args.get("n", 1))
-    new_keys = []
-    for _ in range(n):
-        while True:
-            k = secrets.token_urlsafe(9)
-            try:
-                rk = RegisterKey(key=k, used=False)
-                db.session.add(rk)
-                db.session.commit()
-                new_keys.append(k)
-                break
-            except Exception:
-                db.session.rollback()
-                # jika key duplicate, coba lagi
+    from generate_keys import create_key
+    new_keys = create_key(n)
     return jsonify({"generated": new_keys})
 
 
