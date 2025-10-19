@@ -85,7 +85,7 @@ def admin_list_keys():
     data = [{"key": r[0], "used": bool(r[1])} for r in rows]
     return jsonify({"count": len(data), "keys": data})
 
-@app.route("/admin/generate_keys", methods=["POST"])
+@app.route("/admin/generate_keys", methods=["GET"])
 def admin_generate_keys():
     require_admin()
     n = int(request.args.get("n", 1))  # jumlah key yang mau dibuat
