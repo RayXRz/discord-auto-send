@@ -2,19 +2,24 @@
 import secrets
 from app import db, RegisterKey
 
-def create_keys(n=1):
-    new_keys = []
+# generate_keys.py
+def create_key(n=1):
+    from app import db, RegisterKey  # import di dalam fungsi, bukan di atas
+    import secrets
+    keys = []
     for _ in range(n):
-        k = secrets.token_urlsafe(9)
-        try:
-            rk = RegisterKey(key=k)
-            db.session.add(rk)
-            db.session.flush()  # biar dapat id, tapi belum commit
-            new_keys.append(k)
-        except Exception:
-            db.session.rollback()  # kalau ada duplicate key
-    db.session.commit()
-    return new_keys
+        while True:
+            k = secrets.token_urlsafe(9)
+            try:
+                rk = RegisterKey(key=k, used=False)
+                db.session.add(rk)
+                db.session.commit()
+                keys.append(k)
+                break
+            except Exception:
+                db.session.rollback()
+    return keys
+
 
 if __name__ == "__main__":
     n = 1
@@ -24,7 +29,7 @@ if __name__ == "__main__":
             n = int(sys.argv[1])
     except:
         pass
-    keys = create_keys(n)
+    keys = create_key(n)  # <-- harus sesuai nama fungsi
     print(f"{len(keys)} key berhasil dibuat:")
     for k in keys:
         print(k)
