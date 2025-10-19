@@ -11,6 +11,8 @@ import time
 from datetime import datetime
 import os
 import sqlite3
+import generate_keys
+import check_key
 
 # ---------- Config ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -58,6 +60,35 @@ class UserSetting(db.Model):
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+# === generate key baru ===
+@app.route('/generate_key', methods=['POST'])
+def generate_key():
+    try:
+        n = request.json.get('n', 1)
+    except:
+        n = 1
+    keys = generate_keys.create_keys(n)
+    return jsonify({
+        'status': 'success',
+        'generated': len(keys),
+        'keys': keys
+    })
+
+# === lihat semua key ===
+@app.route('/list_keys', methods=['GET'])
+def list_keys():
+    import sqlite3
+    conn = sqlite3.connect(check_key.DB_PATH)
+    cur = conn.cursor()
+    cur.execute("SELECT key, used FROM register_key")
+    rows = cur.fetchall()
+    conn.close()
+    data = [
+        {"key": k, "used": bool(u)}
+        for k, u in rows
+    ]
+    return jsonify(data)
 
 # ---------- In-memory runtime state ----------
 # user_tasks: { user_id: { setting_id: {'thread': Thread, 'stop_event': Event, 'running': bool} } }
