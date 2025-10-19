@@ -13,6 +13,7 @@ import os
 import sqlite3
 import generate_keys
 import check_key
+import secrets
 
 # ---------- Config ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -21,7 +22,7 @@ ADMIN_KEY = os.environ.get("ADMIN_KEY", "09062008DhafinARz!")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'replace_this_secret_in_production'
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql://postgres:SrRRkhFqeTQxWfPNpoSpbUSNUjeZJvwv@interchange.proxy.rlwy.net:45949/railway"
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
@@ -71,19 +72,11 @@ def require_admin():
 
 @app.route("/admin/list_keys", methods=["GET"])
 def admin_list_keys():
-    # proteksi endpoint
     require_admin()
-
-    db_path = getattr(check_key, "DB_PATH", "app.db")
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("CREATE TABLE IF NOT EXISTS register_key (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE NOT NULL, used INTEGER DEFAULT 0)")
-    cur.execute("SELECT key, used FROM register_key ORDER BY id DESC")
-    rows = cur.fetchall()
-    conn.close()
-
-    data = [{"key": r[0], "used": bool(r[1])} for r in rows]
+    keys = RegisterKey.query.order_by(RegisterKey.id.desc()).all()
+    data = [{"key": k.key, "used": k.used} for k in keys]
     return jsonify({"count": len(data), "keys": data})
+
 
 @app.route("/admin/generate_keys", methods=["GET"])
 def admin_generate_keys():
@@ -91,37 +84,33 @@ def admin_generate_keys():
     n = int(request.args.get("n", 1))
     new_keys = []
     for _ in range(n):
-        from secrets import token_urlsafe
-        k = token_urlsafe(9)
-        rk = RegisterKey(key=k, used=False)
-        try:
-            db.session.add(rk)
-            db.session.commit()
-            new_keys.append(k)
-        except Exception:
-            db.session.rollback()
+        while True:
+            k = secrets.token_urlsafe(9)
+            try:
+                rk = RegisterKey(key=k, used=False)
+                db.session.add(rk)
+                db.session.commit()
+                new_keys.append(k)
+                break
+            except Exception:
+                db.session.rollback()
+                # jika key duplicate, coba lagi
     return jsonify({"generated": new_keys})
 
-# opsional: endpoint untuk download csv (terproteksi juga)
+
 @app.route("/admin/download_keys.csv", methods=["GET"])
 def admin_download_csv():
     require_admin()
-    db_path = getattr(check_key, "DB_PATH", "app.db")
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    cur.execute("SELECT key, used FROM register_key ORDER BY id DESC")
-    rows = cur.fetchall()
-    conn.close()
-
+    keys = RegisterKey.query.order_by(RegisterKey.id.desc()).all()
     lines = ["key,used"]
-    for k, u in rows:
-        lines.append(f"{k},{int(u)}")
+    for k in keys:
+        lines.append(f"{k.key},{int(k.used)}")
     csv_body = "\n".join(lines)
-
     return (csv_body, 200, {
         "Content-Type": "text/csv",
         "Content-Disposition": "attachment; filename=keys.csv"
     })
+
 
 @app.route("/admin/initdb", methods=["GET"])
 def admin_initdb():
@@ -160,21 +149,13 @@ def is_setting_running(user_id, setting_id):
 
 # ---------- DB helper: ensure schema (add is_running if missing) ----------
 def ensure_db_schema():
-    # Use sqlite3 directly to check pragma
-    conn = sqlite3.connect(DB_PATH)
-    cur = conn.cursor()
-    try:
-        cur.execute("PRAGMA table_info(user_setting);")
-        cols = [r[1] for r in cur.fetchall()]
-        if 'is_running' not in cols:
-            # Add column with default 0
-            cur.execute("ALTER TABLE user_setting ADD COLUMN is_running INTEGER DEFAULT 0;")
-            conn.commit()
-            print("[db] Added 'is_running' column to user_setting")
-    except Exception as e:
-        print("[db] ensure schema error:", e)
-    finally:
-        conn.close()
+    # cek kolom di user_setting
+    insp = db.inspect(db.engine)
+    cols = [c['name'] for c in insp.get_columns('user_setting')]
+    if 'is_running' not in cols:
+        db.session.execute("ALTER TABLE user_setting ADD COLUMN is_running INTEGER DEFAULT 0")
+        db.session.commit()
+        print("[db] Added 'is_running' column to user_setting")
 
 # ---------- Background sender (per setting) ----------
 def start_background_sender(user_id, token, setting_id):
@@ -488,17 +469,12 @@ def api_get_logs():
 
 # ---------- Run ----------
 if __name__ == '__main__':
-    # Ensure DB file exists and schema column present
-    if not os.path.exists(DB_PATH):
-        # create empty DB
-        open(DB_PATH, 'a').close()
     ensure_db_schema()
     with app.app_context():
         db.create_all()
-        # Resume ongoing tasks (settings with is_running == 1)
         try:
             resume_running_tasks_on_startup()
         except Exception as e:
             print("[startup] resume error:", e)
-        print("App ready. DB:", DB_PATH)
+        print("App ready. DB:", app.config['SQLALCHEMY_DATABASE_URI'])
     app.run(debug=True)
