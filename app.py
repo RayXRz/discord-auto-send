@@ -21,7 +21,7 @@ ADMIN_KEY = os.environ.get("ADMIN_KEY", "09062008DhafinARz!")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'replace_this_secret_in_production'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('postgresql://postgres:SrRRkhFqeTQxWfPNpoSpbUSNUjeZJvwv@postgres.railway.internal:5432/railway')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 
