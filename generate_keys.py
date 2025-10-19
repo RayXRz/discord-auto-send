@@ -1,11 +1,8 @@
-# generate_keys.py (SQLAlchemy version)
-import secrets
-from app import db, RegisterKey
-
 # generate_keys.py
+import secrets
+
 def create_key(n=1):
-    from app import db, RegisterKey  # import di dalam fungsi, bukan di atas
-    import secrets
+    from app import db, RegisterKey  # import di sini, di dalam fungsi
     keys = []
     for _ in range(n):
         while True:
@@ -20,16 +17,10 @@ def create_key(n=1):
                 db.session.rollback()
     return keys
 
-
 if __name__ == "__main__":
-    n = 1
-    try:
-        import sys
-        if len(sys.argv) > 1:
-            n = int(sys.argv[1])
-    except:
-        pass
-    keys = create_key(n)  # <-- harus sesuai nama fungsi
+    import sys
+    n = int(sys.argv[1]) if len(sys.argv) > 1 else 1
+    keys = create_key(n)
     print(f"{len(keys)} key berhasil dibuat:")
     for k in keys:
         print(k)
