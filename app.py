@@ -17,11 +17,13 @@ import check_key
 # ---------- Config ----------
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DB_PATH = os.path.join(BASE_DIR, "app.db")
+ADMIN_KEY = os.environ.get("ADMIN_KEY", "ganti_dengan_secret_aman")
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'replace_this_secret_in_production'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + DB_PATH
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -62,6 +64,48 @@ def load_user(user_id):
     return User.query.get(int(user_id))
 
 # === generate key baru ===
+def require_admin():
+    auth = request.headers.get("x-admin-key") or request.args.get("admin_key")
+    if not auth or auth != ADMIN_KEY:
+        abort(401)
+
+@app.route("/admin/list_keys", methods=["GET"])
+def admin_list_keys():
+    # proteksi endpoint
+    require_admin()
+
+    db_path = getattr(check_key, "DB_PATH", "app.db")
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("CREATE TABLE IF NOT EXISTS register_key (id INTEGER PRIMARY KEY AUTOINCREMENT, key TEXT UNIQUE NOT NULL, used INTEGER DEFAULT 0)")
+    cur.execute("SELECT key, used FROM register_key ORDER BY id DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    data = [{"key": r[0], "used": bool(r[1])} for r in rows]
+    return jsonify({"count": len(data), "keys": data})
+
+# opsional: endpoint untuk download csv (terproteksi juga)
+@app.route("/admin/download_keys.csv", methods=["GET"])
+def admin_download_csv():
+    require_admin()
+    db_path = getattr(check_key, "DB_PATH", "app.db")
+    conn = sqlite3.connect(db_path)
+    cur = conn.cursor()
+    cur.execute("SELECT key, used FROM register_key ORDER BY id DESC")
+    rows = cur.fetchall()
+    conn.close()
+
+    lines = ["key,used"]
+    for k, u in rows:
+        lines.append(f"{k},{int(u)}")
+    csv_body = "\n".join(lines)
+
+    return (csv_body, 200, {
+        "Content-Type": "text/csv",
+        "Content-Disposition": "attachment; filename=keys.csv"
+    })
+
 @app.route('/generate_key', methods=['POST'])
 def generate_key():
     try:
