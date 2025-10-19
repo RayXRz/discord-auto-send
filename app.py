@@ -276,35 +276,39 @@ def index():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
-        password = request.form.get('password', '').strip()
-        register_key = request.form.get('register_key', '').strip()
+        try:
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '').strip()
+            register_key = request.form.get('register_key', '').strip()
 
-        if not username or not password or not register_key:
-            flash('Semua kolom harus diisi!')
+            if not username or not password or not register_key:
+                flash('Semua kolom harus diisi!')
+                return render_template('register.html')
+            
+            if User.query.filter(db.func.lower(User.username) == username.lower()).first():
+                flash('Username sudah ada!')
+                return render_template('register.html')
+
+            valid_key = RegisterKey.query.filter_by(key=register_key, used=False).first()
+            if not valid_key:
+                flash('Key tidak valid atau sudah dipakai!')
+                return render_template('register.html')
+
+            valid_key.used = 1
+            db.session.commit()
+
+            hashed = generate_password_hash(password)
+            u = User(username=username, password=hashed)
+            db.session.add(u)
+            db.session.commit()
+            flash('Registrasi berhasil. Silakan login.')
+            return redirect(url_for('login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f"Terjadi error: {str(e)}")
             return render_template('register.html')
-        
-        if User.query.filter(db.func.lower(User.username) == username.lower()).first():
-            flash('Username sudah ada!')
-            return render_template('register.html')
-
-        valid_key = RegisterKey.query.filter_by(key=register_key, used=0).first()
-        if not valid_key:
-            flash('Key tidak valid atau sudah dipakai!')
-            return render_template('register.html')
-
-        valid_key.used = 1
-        db.session.commit()
-
-        hashed = generate_password_hash(password)
-        u = User(username=username, password=hashed)
-        db.session.add(u)
-        db.session.commit()
-        flash('Registrasi berhasil. Silakan login.')
-        return redirect(url_for('login'))
-
-    # kalau GET, render form kosong aja
     return render_template('register.html')
+
 
 
 
