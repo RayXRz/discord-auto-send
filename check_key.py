@@ -1,17 +1,35 @@
+import os
 import sqlite3
+import psycopg2
+from urllib.parse import urlparse
 
-DB_PATH = "app.db"  # path ke database
+# ambil database url dari environment (kalau ada)
+DB_URL = os.environ.get("DATABASE_URL")
+
+def get_connection():
+    if DB_URL:
+        result = urlparse(DB_URL)
+        return psycopg2.connect(
+            database=result.path[1:],
+            user=result.username,
+            password=result.password,
+            host=result.hostname,
+            port=result.port
+        )
+    else:
+        return sqlite3.connect("app.db")
 
 def list_keys():
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cur = conn.cursor()
 
-    # pastikan tabel register_key ada
-    cur.execute("""CREATE TABLE IF NOT EXISTS register_key (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    key TEXT UNIQUE NOT NULL,
-                    used INTEGER DEFAULT 0
-                )""")
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS register_key (
+            id SERIAL PRIMARY KEY,
+            key TEXT UNIQUE NOT NULL,
+            used BOOLEAN DEFAULT FALSE
+        )
+    """)
     conn.commit()
 
     print("=== Semua Key ===")
@@ -27,21 +45,21 @@ def list_keys():
     conn.close()
 
 def add_key(new_key):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.execute("INSERT INTO register_key (key) VALUES (?)", (new_key,))
+        cur.execute("INSERT INTO register_key (key) VALUES (%s)", (new_key,))
         conn.commit()
         print(f"Key '{new_key}' berhasil ditambahkan")
-    except sqlite3.IntegrityError:
-        print(f"Key '{new_key}' sudah ada")
+    except Exception as e:
+        print(f"Key '{new_key}' sudah ada atau error: {e}")
     finally:
         conn.close()
 
 def mark_used(key_to_mark):
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_connection()
     cur = conn.cursor()
-    cur.execute("UPDATE register_key SET used=1 WHERE key=?", (key_to_mark,))
+    cur.execute("UPDATE register_key SET used=TRUE WHERE key=%s", (key_to_mark,))
     if cur.rowcount:
         print(f"Key '{key_to_mark}' ditandai sudah dipakai")
     else:
