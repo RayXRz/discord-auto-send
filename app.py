@@ -294,7 +294,7 @@ def register():
                 flash('Key tidak valid atau sudah dipakai!')
                 return render_template('register.html')
 
-            valid_key.used = 1
+            valid_key.used = True
             db.session.commit()
 
             hashed = generate_password_hash(password)
